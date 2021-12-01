@@ -18,22 +18,31 @@
 #   ./scarlet.rb -t0.7 path/*.py
 #
 #   ./scarlet.rb -t0.5 -z1 -n7 *.cpp
-# 
+#
 
 require 'tmpdir'
 require 'rouge'
 require 'optparse'
 
-def lex(filename, output_filename)
+def lex(filename, output_filename, lang)
   source = File.read(filename)
-  lexer = Rouge::Lexer.guess_by_filename(filename).new
+  # lexer = Rouge::Lexer.guess_by_filename(filename).new
+  if lang == "cpp"
+    lexer = Rouge::Lexers::Cpp.new
+  elsif lang == "python"
+    lexer = Rouge::Lexers::Python.new
+  elsif lang == "java"
+    lexer = Rouge::Lexers::Java.new
+  else
+    print("Invalid languge")
+  end
 
   out_file = File.open(output_filename, 'w+')
   lexer.lex(source).each{|tok, chunk|
     if tok.shortname != '' && tok.shortname[0] != 'c' && tok.shortname[0] != 'p' # ignore comments
       #puts "#{tok.shortname} #{chunk.inspect}"
       short = tok.shortname
-      if (short[0] == 'k' || short[0] == 'o') 
+      if (short[0] == 'k' || short[0] == 'o')
         out_file.print "#{short}_#{chunk}"
       else
         out_file.print short
@@ -50,6 +59,7 @@ OptionParser.new do |opts|
   opts.on('-t NUM', Float)
   opts.on('-z NUM', Integer)
   opts.on('-n NUM', Integer)
+  opts.on('-l STR', String)
 end.parse!(into: options)
 
 # Use Rouge Lexer
@@ -68,7 +78,7 @@ Dir.mktmpdir {|tempdir|
     else
       out_basename = file.gsub(/\/|\.|\s/,'-') # replace '/', '.', and whitespace with '-'
     end
-    lex(file, "#{tempdir}/#{out_basename}")
+    lex(file, "#{tempdir}/#{out_basename}", options[:l])
   }
 
   # Run sherlock
